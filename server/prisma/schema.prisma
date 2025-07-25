@@ -1,15 +1,54 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// schema.prisma
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")  
+}
+
+model ASHAWorker {
+  id            Int       @id @default(autoincrement())
+  full_name     String
+  mobile_number String    @unique
+  created_at    DateTime  @default(now())
+  reports       Report[]
+  visits        Visit[]
+}
+
+model OTPVerification {
+  id            Int      @id @default(autoincrement())
+  mobile_number String
+  otp_code      String
+  expires_at    DateTime
+}
+
+model Patient {
+  id           Int       @id @default(autoincrement())
+  name         String
+  age          Int
+  gender       String
+  address      String
+  health_notes String?
+  created_at   DateTime  @default(now())
+  visits       Visit[]
+}
+
+model Report {
+  id             Int       @id @default(autoincrement())
+  date           DateTime
+  issues         String
+  created_at     DateTime  @default(now())
+  asha_worker_id Int
+  asha_worker    ASHAWorker @relation(fields: [asha_worker_id], references: [id])
+}
+
+model Visit {
+  id             Int       @id @default(autoincrement())
+  visit_on       DateTime
+  asha_worker_id Int
+  patient_id     Int
+  asha_worker    ASHAWorker @relation(fields: [asha_worker_id], references: [id])
+  patient        Patient    @relation(fields: [patient_id], references: [id])
 }
