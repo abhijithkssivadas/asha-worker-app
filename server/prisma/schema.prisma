@@ -1,14 +1,13 @@
-// schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")  
-}
-
-model ASHAWorker {
+model AshaWorker {
   id            Int       @id @default(autoincrement())
   full_name     String
   mobile_number String    @unique
@@ -22,6 +21,7 @@ model OTPVerification {
   mobile_number String
   otp_code      String
   expires_at    DateTime
+  created_at    DateTime @default(now())
 }
 
 model Patient {
@@ -36,19 +36,20 @@ model Patient {
 }
 
 model Report {
-  id             Int       @id @default(autoincrement())
+  id             Int        @id @default(autoincrement())
   date           DateTime
   issues         String
-  created_at     DateTime  @default(now())
+  created_at     DateTime   @default(now())
   asha_worker_id Int
-  asha_worker    ASHAWorker @relation(fields: [asha_worker_id], references: [id])
+  asha_worker    AshaWorker @relation(fields: [asha_worker_id], references: [id])
 }
 
 model Visit {
-  id             Int       @id @default(autoincrement())
+  id             Int        @id @default(autoincrement())
   visit_on       DateTime
+  note           String?
   asha_worker_id Int
   patient_id     Int
-  asha_worker    ASHAWorker @relation(fields: [asha_worker_id], references: [id])
+  asha_worker    AshaWorker @relation(fields: [asha_worker_id], references: [id])
   patient        Patient    @relation(fields: [patient_id], references: [id])
 }
