@@ -66,7 +66,18 @@ const RegisterScreen = () => {
         <TouchableOpacity style={styles.button} onPress={handleContinue}>
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
+
+         <Text style={styles.loginText}>
+                  Have an account?{" "}
+                  <Text
+                    style={styles.loginLink}
+                    onPress={() => router.push("/login")}
+                  >
+                   Login
+            </Text>
+          </Text>
       </View>
+      
     </View>
   );
 };
@@ -124,6 +135,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  loginText: {
+    marginTop: 20,
+    textAlign: "center",
+    color: "#666",
+    fontSize: 14,
+  },
+ loginLink: {
+    color: "#8a2be2",
+    textDecorationLine: "underline",
   },
 });
 

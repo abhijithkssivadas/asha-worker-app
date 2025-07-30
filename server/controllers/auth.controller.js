@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client"
+import fetch from 'node-fetch';
 const prisma = new PrismaClient()
 
 const registerAshaWorker = async (req, res, next) => {
@@ -84,9 +85,27 @@ const sendOTP = async (req, res, next) => {
       },
     })
 
+      // ✅ Send OTP using Fast2SMS
+    const smsRes = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+      method: "POST",
+      headers: {
+        authorization:  process.env.FAST2SMS_API_KEY, 
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        route: "otp",
+        variables_values: otp_code,
+        numbers: mobile_number,
+      }),
+    });
+
+    const smsData = await smsRes.json();
+    console.log("SMS Response:", smsData);
+
     return res.status(200).json({
-      message: "OTP sent successfully",
-      otp: otp_code,
+      success: true,
+      message: "OTP sent successfully via SMS",
+      otp: otp_code, // uncomment only for testing
     })
   } catch (error) {
     next(error)
