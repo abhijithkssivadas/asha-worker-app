@@ -47,45 +47,6 @@ const registerAshaWorker = async (req, res, next) => {
   }
 }
 
-const verifyOTP = async (req, res, next) => {
-  const { mobile_number, otp_code } = req.body
-  try {
-    if (!mobile_number || !otp_code) {
-      const error = new Error("Mobile number and OTP code are required")
-      error.statusCode = 400
-      throw error
-    }
-
-    const otpEntry = await prisma.oTPVerification.findFirst({
-      where: {
-        mobile_number,
-        otp_code,
-      },
-      orderBy: {
-        expires_at: "desc",
-      },
-    })
-
-    if (!otpEntry) {
-      const error = new Error("Invalid OTP")
-      error.statusCode = 400
-      throw error
-    }
-
-    const now = new Date()
-    if (otpEntry.expires_at < now) {
-      const error = new Error("OTP expired")
-      error.statusCode = 400
-      throw error
-    }
-
-    return res.status(200).json({ message: "OTP Verified ✅" })
-  } catch (error) {
-    console.log("Received Body:", req.body);
-    next(error)
-  }
-}
-
 const sendOTP = async (req, res, next) => {
   const { mobile_number } = req.body
   try {
@@ -132,5 +93,44 @@ const sendOTP = async (req, res, next) => {
   }
 }
 
-export { registerAshaWorker, verifyOTP, sendOTP }
+const verifyOTP = async (req, res, next) => {
+  const { mobile_number, otp_code } = req.body
+  try {
+    if (!mobile_number || !otp_code) {
+      const error = new Error("Mobile number and OTP code are required")
+      error.statusCode = 400
+      throw error
+    }
 
+    const otpEntry = await prisma.oTPVerification.findFirst({
+      where: {
+        mobile_number,
+        otp_code,
+      },
+      orderBy: {
+        expires_at: "desc",
+      },
+    })
+
+    if (!otpEntry) {
+      const error = new Error("Invalid OTP")
+      error.statusCode = 400
+      throw error
+    }
+
+    const now = new Date()
+    if (otpEntry.expires_at < now) {
+      const error = new Error("OTP expired")
+      error.statusCode = 400
+      throw error
+    }
+
+    return res.status(200).json({ message: "OTP Verified ✅" })
+  } catch (error) {
+    console.log("Received Body:", req.body);
+    next(error)
+  }
+}
+
+
+export { registerAshaWorker, sendOTP , verifyOTP }
