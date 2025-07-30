@@ -17,6 +17,8 @@ const RootLayout = ()=> {
     }}>
       <Stack.Screen name="index" options={{ title: ''}} />
       <Stack.Screen name="register" options={{ headerTitle: 'Register'}} />
+      <Stack.Screen name="login" options={{ headerTitle: 'Login'}} />
+      <Stack.Screen name="otpVerify" options={{ headerTitle: 'Login'}} />
   </Stack>
 }
 
