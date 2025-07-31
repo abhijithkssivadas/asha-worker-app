@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client"
 import fetch from 'node-fetch';
+import { PrismaClient } from "@prisma/client"
 const prisma = new PrismaClient()
 
 const registerAshaWorker = async (req, res, next) => {
@@ -31,7 +31,7 @@ const registerAshaWorker = async (req, res, next) => {
 
     if (existing) {
       const error = new Error("Mobile number already registered")
-      error.statusCode = 400
+      error.statusCode = 409
       throw error
     }
 
@@ -85,7 +85,7 @@ const sendOTP = async (req, res, next) => {
       },
     })
 
-      // ✅ Send OTP using Fast2SMS
+      // Send OTP using Fast2SMS
     const smsRes = await fetch("https://www.fast2sms.com/dev/bulkV2", {
       method: "POST",
       headers: {

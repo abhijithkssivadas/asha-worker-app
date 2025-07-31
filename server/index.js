@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import { PrismaClient } from '@prisma/client'
+
 import authRoutes from './routes/auth.routes.js'
 import errorHandler from './middleware/errorHandler.js'
 import dotenv from "dotenv";
