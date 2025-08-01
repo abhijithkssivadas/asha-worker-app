@@ -1,7 +1,11 @@
 import { Text, View, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 import React, { useState } from "react";
-import AppLogo from "@/assets/images/logo.png";
 import { router } from "expo-router";
+import { isAxiosError } from 'axios';
+
+import { showToast } from "@/lib/showToast";
+import axios from '../axios';
+import AppLogo from "@/assets/images/logo.png";
 
 const RegisterScreen = () => {
 
@@ -9,50 +13,41 @@ const RegisterScreen = () => {
   const [mobileNumber, setMobileNumber] = useState("");
 
   const handleContinue = async () => {
-  console.log("Full Name:", fullName);
-  console.log("Mobile Number:", mobileNumber);
-
   if (!fullName || !mobileNumber) {
-    alert("Please fill both fields");
+    showToast("error", "Missing Fields", "Please fill both fields");
     return;
   }
-
+  
   try {
-    const res = await fetch("http://192.168.43.176:8080/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        full_name: fullName,     
-        mobile_number: mobileNumber, 
-      }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      router.push("/login");
+    const res = await axios.post('/register', {
+        full_name: fullName,
+        mobile_number: mobileNumber,
+      });
+      console.log("Response:", res.data);
+    if (res.status === 200 || res.status === 201) {
+      setFullName("");
+      setMobileNumber("");
+      router.push('/login');
     } else {
-      alert(data.message || "registration failed");
+      showToast("error", "Registration Failed", res.data?.message || "");
     }
     
   } catch (error) {
-    console.error(error);
-    alert("Server Error");
-  }
-
-  setFullName("");
-  setMobileNumber("");
+      console.error(error);
+      if (isAxiosError(error)) {
+        const message = error.response?.data?.message || "Server Error";
+        showToast("error", "Error", message);
+      } else {
+        showToast("error", "Unexpected Error");
+      }
+    }
 };
 
   return (
     <View style={styles.container}>
 
-      {/* Logo */}
       <Image source={AppLogo} style={styles.logo} />
 
-      {/* Input Container */}
       <View style={styles.formContainer}>
         <Text style={styles.label}>Full Name</Text>
         <TextInput style={styles.input} placeholder="Enter your full name"  
@@ -68,19 +63,20 @@ const RegisterScreen = () => {
         </TouchableOpacity>
 
          <Text style={styles.loginText}>
-                  Have an account?{" "}
-                  <Text
-                    style={styles.loginLink}
-                    onPress={() => router.push("/login")}
-                  >
-                   Login
+            Have an account?{" "}
+            <Text
+              style={styles.loginLink}
+              onPress={() => router.push("/login")}
+            >
+              Login
             </Text>
           </Text>
       </View>
-      
     </View>
   );
 };
+
+export default RegisterScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -147,5 +143,3 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 });
-
-export default RegisterScreen;

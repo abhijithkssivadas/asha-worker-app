@@ -9,7 +9,7 @@ const landingPage = ()=> {
   return (
     <View style={styles.container}>
      <View>
-       <Image source={ AppLogo } style={styles.image} />
+       <Image source={AppLogo} style={styles.image} />
      </View>
 
     <View>

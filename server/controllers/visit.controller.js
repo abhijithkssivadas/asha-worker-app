@@ -27,9 +27,7 @@ const createVisit = async (req, res, next) => {
     res.status(201).json(newVisit);
 
   } catch (error) {
-
     next(error);
-
   }
 };
 
@@ -47,9 +45,7 @@ const getAllVisits = async (req, res, next) => {
     res.status(200).json(visits);
 
   } catch (error) {
-
     next(error);
-
   }
 };
  
