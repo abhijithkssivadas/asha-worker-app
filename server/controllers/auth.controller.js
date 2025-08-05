@@ -1,38 +1,31 @@
-import { PrismaClient } from "@prisma/client"
-import fetch from 'node-fetch';
-const prisma = new PrismaClient()
+import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
+const prisma = new PrismaClient();
+
+const generateFixedOTP = (mobile) => {
+  const hash = crypto.createHash("sha256").update(mobile).digest("hex");
+  return parseInt(hash.substring(0, 6), 16).toString().substring(0, 6);
+};
 
 const registerAshaWorker = async (req, res, next) => {
-  const { full_name, mobile_number } = req.body
+  const { full_name, mobile_number } = req.body;
+
   try {
     if (!full_name || !mobile_number) {
-      const error = new Error("Full name and mobile number are required")
-      error.statusCode = 400
-      throw error
+      return res.status(400).json({ success: false, message: "Full name and mobile number are required" });
     }
 
-    const nameRegex = /^[a-zA-Z ]{3,}$/
-    if (!nameRegex.test(full_name.trim())) {
-      const error = new Error("Invalid name. Only letters and spaces allowed (min 3 characters)")
-      error.statusCode = 400
-      throw error
+    if (!/^[a-zA-Z ]{3,}$/.test(full_name.trim())) {
+      return res.status(400).json({ success: false, message: "Invalid name. Minimum 3 letters only." });
     }
 
-    const mobileRegex = /^[6-9]\d{9}$/
-    if (!mobileRegex.test(mobile_number)) {
-      const error = new Error("Invalid mobile number. Must be 10 digits and start with 6-9")
-      error.statusCode = 400
-      throw error
+    if (!/^[6-9]\d{9}$/.test(mobile_number)) {
+      return res.status(400).json({ success: false, message: "Invalid mobile number format" });
     }
 
-    const existing = await prisma.ashaWorker.findUnique({
-      where: { mobile_number },
-    })
-
-    if (existing) {
-      const error = new Error("Mobile number already registered")
-      error.statusCode = 400
-      throw error
+    const exists = await prisma.ashaWorker.findUnique({ where: { mobile_number } });
+    if (exists) {
+      return res.status(409).json({ success: false, message: "Mobile number already registered" });
     }
 
     const newWorker = await prisma.ashaWorker.create({
@@ -40,116 +33,100 @@ const registerAshaWorker = async (req, res, next) => {
         full_name: full_name.trim(),
         mobile_number,
       },
-    })
-
-    return res.status(201).json(newWorker)
-  } catch (error) {
-    next(error)
-  }
-}
-
-const sendOTP = async (req, res, next) => {
-  const { mobile_number } = req.body
-  try {
-    if (!mobile_number) {
-      const error = new Error("Mobile number is required")
-      error.statusCode = 400
-      throw error
-    }
-
-    const mobileRegex = /^[6-9]\d{9}$/
-    if (!mobileRegex.test(mobile_number)) {
-      const error = new Error("Invalid mobile number format")
-      error.statusCode = 400
-      throw error
-    }
-
-    const worker = await prisma.ashaWorker.findUnique({
-      where: { mobile_number },
-    })
-
-    if (!worker) {
-      const error = new Error("Mobile number not registered")
-      error.statusCode = 404
-      throw error
-    }
-
-    const otp_code = Math.floor(100000 + Math.random() * 900000).toString()
-    const expires_at = new Date(Date.now() + 5 * 60 * 1000)
-
-    await prisma.oTPVerification.create({
-      data: {
-        mobile_number,
-        otp_code,
-        expires_at,
-      },
-    })
-
-      // ✅ Send OTP using Fast2SMS
-    const smsRes = await fetch("https://www.fast2sms.com/dev/bulkV2", {
-      method: "POST",
-      headers: {
-        authorization:  process.env.FAST2SMS_API_KEY, 
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        route: "otp",
-        variables_values: otp_code,
-        numbers: mobile_number,
-      }),
     });
 
-    const smsData = await smsRes.json();
-    console.log("SMS Response:", smsData);
+    return res.status(201).json({ success: true, data: newWorker });
+  } catch (error) {
+    console.error("Register Error:", error);
+    next(error);
+  }
+};
+
+const sendOTP = async (req, res, next) => {
+  const { mobile_number } = req.body;
+
+  try {
+    if (!mobile_number || !/^[6-9]\d{9}$/.test(mobile_number)) {
+      return res.status(400).json({ success: false, message: "Valid mobile number required" });
+    }
+
+    const worker = await prisma.ashaWorker.findUnique({ where: { mobile_number } });
+    if (!worker) {
+      return res.status(404).json({ success: false, message: "Mobile number not registered" });
+    }
+
+    const otp_code = generateFixedOTP(mobile_number);
+    const expires_at = new Date(Date.now() + 5 * 60 * 1000); 
+    await prisma.oTPVerification.create({
+      data: { mobile_number, otp_code, expires_at },
+    });
+
+    console.log(` OTP sent to ${mobile_number}: ${otp_code}`);
+
+    return res.status(200).json({ success: true, message: "OTP sent successfully" });
+  } catch (error) {
+    console.error("Send OTP Error:", error);
+    next(error);
+  }
+};
+
+const verifyOTP = async (req, res, next) => {
+  const { mobile_number, otp_code } = req.body;
+
+  try {
+    if (!mobile_number || !otp_code) {
+      return res.status(400).json({ success: false, message: "Mobile number and OTP required" });
+    }
+
+    const entry = await prisma.oTPVerification.findFirst({
+      where: { mobile_number, otp_code },
+      orderBy: { expires_at: "desc" },
+    });
+
+    if (!entry) {
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
+    }
+
+    if (new Date() > entry.expires_at) {
+      return res.status(400).json({ success: false, message: "OTP expired" });
+    }
+
+    const worker = await prisma.ashaWorker.findUnique({ where: { mobile_number } });
+    if (!worker) {
+      return res.status(404).json({ success: false, message: "ASHA Worker not found" });
+    }
 
     return res.status(200).json({
       success: true,
-      message: "OTP sent successfully via SMS",
-      otp: otp_code, // uncomment only for testing
-    })
+      message: "OTP verified",
+      id: worker.id,
+    });
   } catch (error) {
-    next(error)
+    console.error("Verify OTP Error:", error);
+    next(error);
   }
-}
+};
 
-const verifyOTP = async (req, res, next) => {
-  const { mobile_number, otp_code } = req.body
+const getAshaWorkerByMobile = async (req, res, next) => {
+  const { mobile_number } = req.params;
+
   try {
-    if (!mobile_number || !otp_code) {
-      const error = new Error("Mobile number and OTP code are required")
-      error.statusCode = 400
-      throw error
+    const asha = await prisma.ashaWorker.findUnique({ where: { mobile_number } });
+
+    if (!asha) {
+      return res.status(404).json({ success: false, message: "ASHA Worker not found" });
     }
 
-    const otpEntry = await prisma.oTPVerification.findFirst({
-      where: {
-        mobile_number,
-        otp_code,
-      },
-      orderBy: {
-        expires_at: "desc",
-      },
-    })
-
-    if (!otpEntry) {
-      const error = new Error("Invalid OTP")
-      error.statusCode = 400
-      throw error
-    }
-
-    const now = new Date()
-    if (otpEntry.expires_at < now) {
-      const error = new Error("OTP expired")
-      error.statusCode = 400
-      throw error
-    }
-
-    return res.status(200).json({ message: "OTP Verified ✅" })
+    return res.status(200).json({ success: true, full_name: asha.full_name });
   } catch (error) {
-    console.log("Received Body:", req.body);
-    next(error)
+    console.error("Fetch ASHA Worker Error:", error);
+    next(error);
   }
-}
+};
 
-
-export { registerAshaWorker, sendOTP , verifyOTP }
+export {
+  registerAshaWorker,
+  sendOTP,
+  verifyOTP,
+  getAshaWorkerByMobile,
+};

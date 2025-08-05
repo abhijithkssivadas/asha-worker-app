@@ -1,49 +1,50 @@
 import { Text, View, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 import React, { useState } from "react";
-import AppLogo from "@/assets/images/logo.png";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from "expo-router";
+import { isAxiosError } from 'axios';
+
+import { showToast } from "@/lib/showToast";
+import axios from '../axios';
+import AppLogo from "@/assets/images/logo.png";
 
 const LoginScreen = () => {
   const [mobileNumber, setMobileNumber] = useState("");
 
-  const handleSendOtp = async () => {
-    console.log("Mobile Number:", mobileNumber);
+const handleSendOtp = async () => {
+  if (!mobileNumber) {
+    showToast("error", "Please enter mobile number");
+    return;
+  }
 
-    if (!mobileNumber) {
-      alert("Please enter mobile number");
-      return;
+  try {
+    const res = await axios.post('/send-otp', {
+      mobile_number: mobileNumber,
+    });
+
+    if (res.data?.success) {
+      await AsyncStorage.setItem('ashaMobile', mobileNumber);
+      showToast("success", res.data.message || "OTP sent successfully");
+      router.push({ pathname: "/otp-verify", params: { mobileNumber } });
+      setMobileNumber("");
+    } else {
+      showToast("error", res.data?.message || "OTP sending failed");
     }
-
-    try {
-      const res = await fetch("http://192.168.43.176:8080/api/send-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ mobile_number: mobileNumber }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        router.push({ pathname: "/otpVerify", params: { mobileNumber } });
-      } else {
-        alert(data.message || "OTP sending failed");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Server error");
+  } catch (error) {
+    if (error.response?.data?.message) {
+      showToast("error", error.response.data.message);
+    } else {
+      showToast("error", "Server Error");
     }
+  }
+};
 
-    setMobileNumber("");
-  };
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
+
       <Image source={AppLogo} style={styles.logo} />
 
-      {/* Input Container */}
       <View style={styles.formContainer}>
         <Text style={styles.label}>Mobile Number</Text>
         <TextInput
@@ -54,8 +55,6 @@ const LoginScreen = () => {
           onChangeText={setMobileNumber}
           keyboardType="numeric"
         />
-
-        {/* Send OTP Button */}
         <TouchableOpacity style={styles.button} onPress={handleSendOtp}>
           <Text style={styles.buttonText}>Send OTP</Text>
         </TouchableOpacity>

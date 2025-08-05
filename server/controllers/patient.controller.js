@@ -2,13 +2,13 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Create New Patient
 const createPatient = async (req, res, next) => {
   try {
-    const { name, age, gender, address, health_notes } = req.body;
 
-    if (!name || !age || !gender || !address) {
-      const error = new Error("Name, age, gender, and address are required");
+    const { name, age, gender, address, health_notes, ashaWorkerId } = req.body;
+
+    if (!name || !age || !gender || !address || !ashaWorkerId) {
+      const error = new Error("Missing required fields or ashaWorkerId");
       error.statusCode = 400;
       throw error;
     }
@@ -20,20 +20,34 @@ const createPatient = async (req, res, next) => {
         gender,
         address,
         health_notes,
+        ashaWorkerId: Number(ashaWorkerId), 
       },
     });
 
-    res.status(201).json(newPatient);
+    res.status(201).json({
+      success: true,
+      message: 'Patient created successfully',
+      data: newPatient,
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// List All Patients
+
 const getAllPatients = async (req, res, next) => {
   try {
+    const { ashaWorkerId } = req.query;
+
+    if (!ashaWorkerId) {
+      const error = new Error("ashaWorkerId query parameter is required");
+      error.statusCode = 400;
+      throw error;
+    }
+
     const patients = await prisma.patient.findMany({
-      orderBy: { created_at: "desc" },
+      where: { ashaWorkerId: Number(ashaWorkerId) },
+      orderBy: { created_at: "asc" }, 
     });
 
     res.status(200).json(patients);
