@@ -1,21 +1,26 @@
 import express from 'express'
 import cors from 'cors'
-import { PrismaClient } from '@prisma/client'
+import dotenv from 'dotenv'
 
 import authRoutes from './routes/auth.routes.js'
+import apiRoutes from './routes/api.routes.js'
+import ashaRoutes from './routes/asha.routes.js'
 import errorHandler from './middleware/errorHandler.js'
-import dotenv from "dotenv";
-dotenv.config();
+
+dotenv.config()
 
 const app = express()
-const prisma = new PrismaClient()
 
 app.use(cors())
 app.use(express.json())
-app.use(errorHandler)
 
 // Routes
 app.use('/api', authRoutes)
+app.use('/api', apiRoutes)
+app.use('/api', ashaRoutes)
+
+// Error handler
+app.use(errorHandler)
 
 app.get('/', (req, res) => {
   res.send("AshaPath Backend is Running ✅")

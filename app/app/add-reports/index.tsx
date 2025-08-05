@@ -1,49 +1,85 @@
-import React, { useState } from 'react'
-import { 
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-} from 'react-native'
+} from 'react-native';
+import { isAxiosError } from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { showToast } from '@/lib/showToast';
+import axios from '../axios';
 
 const AddReports = () => {
+  const router = useRouter();
   const [date, setDate] = useState('');
-  const [summary, setSummary] = useState('');
+  const [issues, setIssues] = useState('');
 
-  const handleSave = () => {
-    console.log(({ date, summary }));
-    
-  }
+  const handleSave = async () => {
+    if (!date || !issues) {
+      showToast('error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      const id = await AsyncStorage.getItem('ashaId');
+
+      if (!id) {
+        showToast('error', 'ASHA Worker ID not found');
+        return;
+      }
+
+      const res = await axios.post('/reports', {
+        asha_worker_id: Number(id),
+        date,
+        issues,
+      });
+
+      if (res.data.success) {
+        showToast('success', 'Report added successfully');
+        router.back();
+      } else { 
+        showToast('error', res.data.message || 'Failed to add report');
+      }
+    } catch (error) {
+      if (isAxiosError(error)) {
+        showToast('error', error.response?.data?.message || 'Server error');
+      } else {
+        showToast('error', 'Unexpected error occurred');
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Date</Text>
-      <TextInput 
-      style={styles.input}
-      placeholder='dd/mm/yyyy'
-      placeholderTextColor="#888"
-      value={date}
-      onChangeText={setDate}
-      />
-      
-      <Text style={styles.label}>Issues faced/Summary</Text>
       <TextInput
-      style={[styles.input, styles.textArea]}
-      placeholder='eg. out of stock medicine, refusal of visit/summary'
-      placeholderTextColor="#888"
-      value={summary}
-      onChangeText={setSummary}
-      multiline
+        style={styles.input}
+        placeholder="dd/mm/yyyy"
+        placeholderTextColor="#888"
+        value={date}
+        onChangeText={setDate}
+      />
+
+      <Text style={styles.label}>Issues faced / Summary</Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="e.g. out of stock medicine, refusal of visit"
+        placeholderTextColor="#888"
+        value={issues}
+        onChangeText={setIssues}
+        multiline
       />
 
       <TouchableOpacity style={styles.button} onPress={handleSave}>
         <Text style={styles.buttonText}>Save</Text>
       </TouchableOpacity>
     </View>
-  )
-}
-
-export default AddReports
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -57,27 +93,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: '600',
   },
-   input: {
+  input: {
     borderWidth: 1,
     borderColor: '#bbb',
     borderRadius: 6,
     padding: 10,
     fontSize: 16,
   },
-    textArea: {
-    height: 200,
+  textArea: {
+    height: 180,
     textAlignVertical: 'top',
   },
-    button: {
+  button: {
     backgroundColor: '#8a2be2',
     marginTop: 25,
     padding: 14,
     borderRadius: 6,
     alignItems: 'center',
   },
-    buttonText: {
+  buttonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
   },
-})
+});
+
+export default AddReports;

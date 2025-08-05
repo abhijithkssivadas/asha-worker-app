@@ -2,51 +2,74 @@ import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient();
 
-// Create New Visit
 const createVisit = async (req, res, next) => {
   try {
-    const { asha_worker_id, patient_id, visit_on, note } = req.body;
+    const { asha_worker_id, patient_name, visit_date, note } = req.body;
 
-    if (!asha_worker_id || !patient_id || !visit_on) {
-
-      const error = new Error("asha_worker_id, patient_id, and visit_on are required");
+    if (!asha_worker_id || !patient_name || !visit_date) {
+      const error = new Error("asha_worker_id, patient_name, and visit_date are required");
       error.statusCode = 400;
       throw error;
-      
     }
 
-    const newVisit = await prisma.visit.create({
+    const [day, month, year] = visit_date.split('/');
+    const formattedDate = new Date(`${year}-${month}-${day}`);
+
+    if (isNaN(formattedDate.getTime())) {
+      const error = new Error("Invalid date format. Use 'dd/mm/yyyy'.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const newVisit = await prisma.upcomingVisit.create({
       data: {
         asha_worker_id,
-        patient_id,
-        visit_on: new Date(visit_on),
+        patient_name,
+        visit_date: formattedDate,
         note,
       },
     });
 
     res.status(201).json(newVisit);
-
   } catch (error) {
     next(error);
   }
 };
 
-// List All Visits
 const getAllVisits = async (req, res, next) => {
   try {
-    const visits = await prisma.visit.findMany({
-      include: {
-        asha_worker: { select: { full_name: true } },
-        patient: { select: { name: true, age: true, gender: true } },
+    const { asha_worker_id } = req.query;
+
+    if (!asha_worker_id) {
+      return res.status(400).json({ error: "asha_worker_id is required in query" });
+    }
+
+    const visits = await prisma.upcomingVisit.findMany({
+      where: {
+        asha_worker_id: Number(asha_worker_id),
       },
-      orderBy: { visit_on: "desc" },
+      orderBy: {
+        visit_date: "asc",
+      },
     });
 
-    res.status(200).json(visits);
+    const formattedVisits = visits.map((visit) => {
+      const date = new Date(visit.visit_date);
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
 
+      return {
+        ...visit,
+        visit_date: `${day}/${month}/${year}`,
+        note: visit.note || "No health notes",
+      };
+    });
+
+    res.status(200).json(formattedVisits);
   } catch (error) {
     next(error);
   }
 };
- 
+
 export { createVisit, getAllVisits };

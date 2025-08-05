@@ -1,78 +1,96 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import axios from '../axios'
+import axios from '../axios';
 
 const HomeScreen = () => {
+  const [ashaName, setAshaName] = useState('Loading...');
+  const [totalPatients, setTotalPatients] = useState(0);
+  const [totalReports, setTotalReports] = useState(0);
 
-const [ashaName, setAshaName] = useState('Loading...');
-
-useEffect(() => {
-  const fetchAshaName = async () => {
+  const fetchHomeData = async () => {
     try {
       const mobileNumber = await AsyncStorage.getItem('ashaMobile');
-      const res = await axios.get(`/asha/${mobileNumber}`);
-      setAshaName(res.data.full_name);
+
+      const [ashaRes, patientsRes, reportsRes] = await Promise.all([
+        axios.get(`/asha/${mobileNumber}`),
+        axios.get(`/asha/${mobileNumber}/total-patients`),
+        axios.get(`/asha/${mobileNumber}/total-reports`)
+      ]);
+
+      setAshaName(ashaRes.data.full_name);
+      setTotalPatients(patientsRes.data.count);
+      setTotalReports(reportsRes.data.count);
     } catch (err) {
-      console.error("Error fetching ASHA data:", err);
       setAshaName('Unknown');
     }
   };
 
-  fetchAshaName();
-}, []);
-
+  useFocusEffect(
+    useCallback(() => {
+      fetchHomeData();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
-
-      {/* Profile Section */}
       <View style={styles.topSection}>
         <Text style={styles.profileName}>👤 {ashaName}</Text>
-            
       </View>
-
-      {/* Cards */}
       <View style={styles.Row}>
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/total-patients')}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push('/total-patients')}
+        >
           <Text style={styles.cardTitle}>Total Patients</Text>
-          <Text style={styles.cardValue}>16</Text>
+          <Text style={styles.cardValue}>{totalPatients}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/total-reports')}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push('/total-reports')}
+        >
           <Text style={styles.cardTitle}>Total Reports</Text>
-        <Text style={styles.cardValue}>28</Text>
+          <Text style={styles.cardValue}>{totalReports}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Buttons */}
       <View style={styles.buttons}>
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/add-patient')}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/add-patient')}
+        >
           <Text style={styles.buttonText}>+ Add Patient</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/add-reports')}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/add-reports')}
+        >
           <Text style={styles.buttonText}>📋 Add Daily Report</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={() => router.push('/see-visits')}>
-          <Text style={styles.buttonText}>📅 See Visits</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/see-visits')}
+        >
+          <Text style={styles.buttonText}>📅 See Visit</Text>
         </TouchableOpacity>
       </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={() => {
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={async () => {
+          await AsyncStorage.removeItem('ashaMobile');
           router.replace('/login');
-             }}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-
+        }}
+      >
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
     </View>
   );
-}
-
-export default HomeScreen
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -84,14 +102,8 @@ const styles = StyleSheet.create({
   topSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:'space-between',
+    justifyContent: 'space-between',
     marginBottom: 24,
-  },
-  profileIcon: {
-    width: 45,
-    height: 45,
-    borderRadius: 24,
-    marginRight: 12,
   },
   profileName: {
     fontSize: 20,
@@ -143,9 +155,11 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     alignItems: 'center',
   },
-     logoutText: {
+  logoutText: {
     color: 'red',
     fontSize: 18,
     fontWeight: '600',
   },
 });
+
+export default HomeScreen;

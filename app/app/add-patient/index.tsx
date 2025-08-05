@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   View,
@@ -6,21 +7,63 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { isAxiosError } from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import axios from '../axios';
+import { showToast } from '@/lib/showToast';
 
 const AddPatientScreen = () => {
+  const router = useRouter(); 
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('Male');
   const [address, setAddress] = useState('');
-  const [notes, setNotes] = useState('');
+  const [health_notes, setHealth_notes] = useState('');
 
-  const handleSave = () => {
-    console.log({ name, age, gender, address, notes });
-  };
+const handleSave = async () => {
+  if (!name || !age || !address) {
+    showToast('error', 'Please fill in all required fields');
+    return;
+  }
+
+  try {
+    const id = await AsyncStorage.getItem('ashaId');
+
+    if (!id) {
+      showToast('error', 'No ASHA worker found in storage');
+      return;
+    }
+
+    const patientData = {
+      name,
+      age: Number(age),
+      gender,
+      address,
+      health_notes,
+      ashaWorkerId: Number(id),
+    };
+
+    const res = await axios.post('/patients', patientData);
+
+    if (res.data.success) {
+      showToast('success', 'Patient added successfully');
+      router.back();
+    } else {
+      showToast('error', res.data.message || 'Failed to add patient');
+    }
+  } catch (error) {
+    if (isAxiosError(error)) {
+      showToast('error', error.response?.data?.message || 'Server error');
+    } else {
+      showToast('error', 'Unexpected error occurred');
+    }
+  }
+};
+
 
   return (
     <View style={styles.container}>
-
       <Text style={styles.label}>Name</Text>
       <TextInput
         style={styles.input}
@@ -70,8 +113,8 @@ const AddPatientScreen = () => {
         style={[styles.input, { height: 80 }]}
         placeholder="Condition, symptoms, meds, notes..."
         placeholderTextColor="#888"
-        value={notes}
-        onChangeText={setNotes}
+        value={health_notes}
+        onChangeText={setHealth_notes}
         multiline
       />
 
@@ -82,19 +125,12 @@ const AddPatientScreen = () => {
   );
 };
 
-export default AddPatientScreen;
-
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    paddingVertical:15,
+    paddingVertical: 15,
     flex: 1,
     backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 15,
   },
   label: {
     marginTop: 12,
@@ -149,3 +185,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+export default AddPatientScreen;

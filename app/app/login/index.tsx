@@ -11,36 +11,34 @@ import AppLogo from "@/assets/images/logo.png";
 const LoginScreen = () => {
   const [mobileNumber, setMobileNumber] = useState("");
 
-  const handleSendOtp = async () => {
-
+const handleSendOtp = async () => {
   if (!mobileNumber) {
-    showToast("error","Please enter mobile number")
+    showToast("error", "Please enter mobile number");
     return;
   }
 
   try {
     const res = await axios.post('/send-otp', {
-     mobile_number: mobileNumber
+      mobile_number: mobileNumber,
     });
 
-    if (res.data.success) {
+    if (res.data?.success) {
       await AsyncStorage.setItem('ashaMobile', mobileNumber);
-      showToast("success", "OTP sent successfully");
+      showToast("success", res.data.message || "OTP sent successfully");
       router.push({ pathname: "/otp-verify", params: { mobileNumber } });
-    } else {
-      showToast("error", res.data.message || "OTP sending failed");
-    }
       setMobileNumber("");
-
-  } catch (error) {
-    console.error(error);
-    if (isAxiosError(error)) {
-      showToast("error", error.response?.data?.message || "Server Error");
     } else {
-      showToast("error", "Unexpected Error");
+      showToast("error", res.data?.message || "OTP sending failed");
+    }
+  } catch (error) {
+    if (error.response?.data?.message) {
+      showToast("error", error.response.data.message);
+    } else {
+      showToast("error", "Server Error");
     }
   }
 };
+
 
   return (
     <View style={styles.container}>
@@ -74,8 +72,6 @@ const LoginScreen = () => {
     </View>
   );
 };
-
-export default LoginScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -139,3 +135,5 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 });
+
+export default LoginScreen;

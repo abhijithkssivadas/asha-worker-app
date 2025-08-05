@@ -23,7 +23,6 @@ const RegisterScreen = () => {
         full_name: fullName,
         mobile_number: mobileNumber,
       });
-      console.log("Response:", res.data);
     if (res.status === 200 || res.status === 201) {
       setFullName("");
       setMobileNumber("");
@@ -33,7 +32,6 @@ const RegisterScreen = () => {
     }
     
   } catch (error) {
-      console.error(error);
       if (isAxiosError(error)) {
         const message = error.response?.data?.message || "Server Error";
         showToast("error", "Error", message);
@@ -57,7 +55,6 @@ const RegisterScreen = () => {
         <TextInput style={styles.input}  placeholder="Enter mobile number"
          placeholderTextColor="#888" value={mobileNumber} onChangeText={setMobileNumber} />
 
-        {/* Continue Button */}
         <TouchableOpacity style={styles.button} onPress={handleContinue}>
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
@@ -75,8 +72,6 @@ const RegisterScreen = () => {
     </View>
   );
 };
-
-export default RegisterScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -143,3 +138,5 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 });
+
+export default RegisterScreen;

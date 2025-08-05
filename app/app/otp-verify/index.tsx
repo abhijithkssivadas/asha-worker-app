@@ -2,68 +2,70 @@ import { Text, View, TextInput, TouchableOpacity, Image, StyleSheet } from "reac
 import React, { useState } from "react";
 import { useLocalSearchParams, router } from "expo-router";
 import { isAxiosError } from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { showToast } from "@/lib/showToast";
 import axios from '../axios';
 import AppLogo from "@/assets/images/logo.png";
 
 const OTPVerify = () => {
- 
- const handleResendOtp = async () => {
-  try {
-    const res = await axios.post('/send-otp', { mobile_number: mobileNumber });
-
-    if (res.data.success) {
-      showToast("success", "OTP resent successfully");
-    } else {
-      showToast("error", res.data.message || "Resend failed");
-    }
-  } catch (error) {
-    if (isAxiosError(error)) {
-      showToast("error", error.response?.data?.message || "Error resending OTP");    
-    } else {
-      showToast("error", "Unexpected Error");
-    }
-  }
-};
   const { mobileNumber } = useLocalSearchParams();
   const [otp, setOtp] = useState("");
 
+  const handleResendOtp = async () => {
+    try {
+      const res = await axios.post('/send-otp', { mobile_number: mobileNumber });
+
+      if (res.data.success) {
+        showToast("success", "OTP resent successfully");
+      } else {
+        showToast("error", res.data.message || "Resend failed");
+      }
+    } catch (error) {
+      if (isAxiosError(error)) {
+        showToast("error", error.response?.data?.message || "Error resending OTP");    
+      } else {
+        showToast("error", "Unexpected Error");
+      }
+    }
+  };
+
   const handleVerify = async () => {
-  if (!otp || otp.length !== 6) {
-     showToast("error", "Please enter a valid 6-digit OTP");
-    return;
-  }
-
-  try {
-    const res = await axios.post('verify-otp', {
-       mobile_number: mobileNumber,
-       otp_code: otp
-    });
-
-    if (res.data.success) {
-      showToast("success", "OTP verified");
-      router.replace('/home');
-} else {
-      showToast("error", res.data.message || "OTP verification failed");
+    if (!otp || otp.length !== 6) {
+      showToast("error", "Please enter a valid 6-digit OTP");
+      return;
     }
-  } catch (error) {
-    if(isAxiosError(error)){
-      showToast("error", error.response?.data?.message || "Error verifying OTP");
-    } else {
-      showToast("error", "Unexpected Error");
-    }
-  }
-};
 
+    try {
+      const res = await axios.post('verify-otp', {
+        mobile_number: mobileNumber,
+        otp_code: otp,
+      });
+
+      if (res.data.success) {
+        await AsyncStorage.setItem('ashaId', res.data.id.toString());
+        await AsyncStorage.setItem('ashaMobile', mobileNumber.toString());
+
+
+        showToast("success", "OTP verified");
+        router.replace('/home')
+      } else {
+        showToast("error", res.data.message || "OTP verification failed");
+      }
+    } catch (error) {
+      if (isAxiosError(error)) {
+        showToast("error", error.response?.data?.message || "Error verifying OTP");
+      } else {
+        showToast("error", "Unexpected Error");
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
-
       <Image source={AppLogo} style={styles.logo} />
 
       <View style={styles.formContainer}>
-
         <Text style={styles.label}>Mobile Number</Text>
         <TextInput
           style={styles.input}
@@ -76,6 +78,7 @@ const OTPVerify = () => {
           style={styles.input}
           placeholder="Enter OTP sent to your number"
           placeholderTextColor="#888"
+          keyboardType="numeric"
           value={otp}
           onChangeText={setOtp}
         />
@@ -85,14 +88,12 @@ const OTPVerify = () => {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleResendOtp}>
-            <Text style={{ color: "#0906adff", textAlign: "center", marginTop: 16 }}>Resend OTP</Text>
+          <Text style={{ color: "#0906adff", textAlign: "center", marginTop: 16 }}>Resend OTP</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
-
-export default OTPVerify;
 
 const styles = StyleSheet.create({
   container: {
@@ -162,3 +163,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+export default OTPVerify;

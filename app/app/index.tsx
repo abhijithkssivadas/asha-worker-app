@@ -2,51 +2,52 @@ import { Text, View, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import AppLogo from '@/assets/images/logo.png';
 
-const landingPage = ()=> {
-
-  const router = useRouter()
+const LandingPage = () => {
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
-     <View>
-       <Image source={AppLogo} style={styles.image} />
-     </View>
+      <View>
+        <Image source={AppLogo} style={styles.image} />
+      </View>
 
-    <View>
-       <TouchableOpacity style={styles.button} onPress={() => router.push('/register')}>
-        <Text style={styles.buttonText}>Get Started</Text>
-      </TouchableOpacity>
-    </View>
+      <View>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/register')}
+        >
+          <Text style={styles.buttonText}>Get Started</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
-}
-
+};
 
 const styles = StyleSheet.create({
   container: {
-    flex:1,
-    justifyContent:'center',
-    alignItems:"center",
-    backgroundColor:"#fff"
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: "center",
+    backgroundColor: "#fff",
   },
-  image:{
+  image: {
     alignSelf: "center",
     width: 200,
     height: 200,
   },
-  button:{
+  button: {
     backgroundColor: '#0772d6ff',
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom:60
+    marginBottom: 60,
   },
-  buttonText:{
+  buttonText: {
     color: '#fff',
-    fontSize:18,
-    fontWeight: 'bold'
-  }
-})
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+});
 
-export default landingPage;
+export default LandingPage;

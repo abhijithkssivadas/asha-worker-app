@@ -8,12 +8,13 @@ generator client {
 }
 
 model AshaWorker {
-  id            Int       @id @default(autoincrement())
-  full_name     String
-  mobile_number String    @unique
-  created_at    DateTime  @default(now())
-  reports       Report[]
-  visits        Visit[]
+  id             Int             @id @default(autoincrement())
+  full_name      String
+  mobile_number  String          @unique
+  created_at     DateTime        @default(now())
+  patients       Patient[]
+  reports        Report[]
+  upcomingVisits UpcomingVisit[]
 }
 
 model OTPVerification {
@@ -25,14 +26,15 @@ model OTPVerification {
 }
 
 model Patient {
-  id           Int       @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   name         String
   age          Int
   gender       String
   address      String
   health_notes String?
-  created_at   DateTime  @default(now())
-  visits       Visit[]
+  created_at   DateTime   @default(now())
+  ashaWorkerId Int
+  ashaWorker   AshaWorker @relation(fields: [ashaWorkerId], references: [id])
 }
 
 model Report {
@@ -44,12 +46,11 @@ model Report {
   asha_worker    AshaWorker @relation(fields: [asha_worker_id], references: [id])
 }
 
-model Visit {
+model UpcomingVisit {
   id             Int        @id @default(autoincrement())
-  visit_on       DateTime
+  visit_date     DateTime
+  patient_name   String
   note           String?
   asha_worker_id Int
-  patient_id     Int
   asha_worker    AshaWorker @relation(fields: [asha_worker_id], references: [id])
-  patient        Patient    @relation(fields: [patient_id], references: [id])
 }
